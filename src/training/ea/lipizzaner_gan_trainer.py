@@ -109,10 +109,11 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
         for iteration in range(n_iterations):
 
-            if (iteration//10) % 2 == 1:
-                loss_switch = True
-            else:
-                loss_switch = False
+            # if (iteration//10) % 2 == 1:
+            #     loss_switch = True
+            # else:
+            #     loss_switch = False
+            loss_switch = 0
 
             self._logger.debug('Iteration {} started'.format(iteration + 1))
             start_time = time()
@@ -360,7 +361,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                                                                                                         self.score))
 
     def step(self, original, attacker, defender, input_data, i, loaded,
-             data_iterator, labels=None, loss_switch=False):
+             data_iterator, labels=None, loss_switch=0):
         self.mutate_hyperparams(attacker)
         return self.update_genomes(attacker, defender, input_data, loaded,
                                    data_iterator, labels=labels, loss_switch=loss_switch)
@@ -382,7 +383,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             individual.learning_rate = max(0, individual.learning_rate + deltas[i] * self._alpha)
 
     def update_genomes(self, population_attacker, population_defender, input_var,
-                       loaded, data_iterator, labels=None, loss_switch=False):
+                       loaded, data_iterator, labels=None, loss_switch=0):
 
         # TODO Currently picking random opponent, introduce parameter for this
         defender = random.choice(population_defender.individuals).genome
@@ -414,7 +415,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
     @staticmethod
     def evaluate_fitness(population_attacker, population_defender, input_var, fitness_mode,
-                         labels=None, logger=None, loss_switch=False):
+                         labels=None, logger=None, loss_switch=0):
         # Single direction only: Evaluate fitness of attacker based on defender
         # TODO: Simplify and refactor this function
         def compare_fitness(curr_fitness, fitness, mode):
