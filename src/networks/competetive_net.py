@@ -30,7 +30,7 @@ class CompetetiveNet(ABC):
             print(e)
 
     @abstractmethod
-    def compute_loss_against(self, opponent, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent, input, labels=None, loss_switch=False):
         """
         :return: (computed_loss, output_data -> (optional), accuracy(s) -> (optional))
         """
@@ -117,7 +117,7 @@ class GeneratorNet(CompetetiveNet):
     def default_fitness(self):
         return float('-inf')
 
-    def compute_loss_against(self, opponent, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent, input, labels=None, loss_switch=False):
         batch_size = input.size(0)
 
         real_labels = to_pytorch_variable(torch.ones(batch_size))
@@ -140,7 +140,7 @@ class DiscriminatorNet(CompetetiveNet):
     def default_fitness(self):
         return float('-inf')
 
-    def compute_loss_against(self, opponent, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent, input, labels=None, loss_switch=False):
 
         # If HeuristicLoss is applied in the Generator, the Discriminator applies BCELoss
         if self.loss_function.__class__.__name__ == 'MustangsLoss':
@@ -176,7 +176,7 @@ class GeneratorNetSequential(CompetetiveNet):
     def default_fitness(self):
         return float('-inf')
 
-    def compute_loss_against(self, opponent, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent, input, labels=None, loss_switch=False):
         batch_size = input.size(0)
         sequence_length = input.size(1)
         num_inputs = input.size(2)
@@ -209,7 +209,7 @@ class DiscriminatorNetSequential(CompetetiveNet):
     def default_fitness(self):
         return float('-inf')
 
-    def compute_loss_against(self, opponent, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent, input, labels=None, loss_switch=False):
         # Compute BCE_Loss using real images where BCE_Loss(x, y): - y * log(D(x)) - (1-y) * log(1 - D(x))
         # Second term of the loss is always zero since real_labels == 1
 
@@ -271,7 +271,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
                                   self.optimize_bias,
                                   conv=self.conv)
 
-    def compute_loss_against(self, opponent, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent, input, labels=None, loss_switch=False):
         """
         Assumes input is provided as a list and that the last column is an
         integer column representing the class of the corresponding input
@@ -295,17 +295,16 @@ class SSDiscriminatorNet(DiscriminatorNet):
         label_prediction_loss = self.label_pred_loss(label_prediction, labels)
         outputs = self.adv_layer(network_output).view(-1)
         validity = self.loss_function(outputs, real)
-        real_acc = np.mean(outputs.data.cpu().numpy())
 
-        if alpha is not None:
-            d_loss_real = (beta * label_prediction_loss + alpha * validity) / 2
+        if loss_switch:
+            d_loss_real = label_prediction_loss / 2
         else:
-            d_loss_real = (label_prediction_loss + validity) / 2
+            d_loss_real = validity / 2
 
         pred = label_prediction.data.cpu().numpy()
-        gt = labels.data.cpu().numpy()
+        ground_truth = labels.data.cpu().numpy()
         pred_labels = np.argmax(pred, axis=1)
-        d_acc = np.mean(pred_labels == gt)
+        accuracy = np.mean(pred_labels == ground_truth)
 
         # Fake Loss
         z = noise(batch_size, self.data_size)
@@ -318,14 +317,13 @@ class SSDiscriminatorNet(DiscriminatorNet):
         label_prediction_loss = self.label_pred_loss(label_prediction, fake_labels)
         outputs = self.adv_layer(network_output).view(-1)
         validity = self.loss_function(outputs, fake)
-        fake_acc = np.mean(outputs.data.cpu().numpy())
 
-        if alpha is not None:
-            d_loss_fake = (beta * label_prediction_loss + alpha * validity) / 2
+        if loss_switch:
+            d_loss_fake = label_prediction_loss / 2
         else:
-            d_loss_fake = (label_prediction_loss + validity) / 2
+            d_loss_fake = validity / 2
 
-        return d_loss_real + d_loss_fake, None, (d_acc, real_acc, fake_acc)
+        return d_loss_real + d_loss_fake, None, accuracy
 
 
 class SSGeneratorNet(GeneratorNet):
@@ -345,15 +343,22 @@ class SSGeneratorNet(GeneratorNet):
                               self.data_size,
                               self.optimize_bias)
 
-    def compute_loss_against(self, opponent: SSDiscriminatorNet, input, labels=None, alpha=None, beta=None):
+    def compute_loss_against(self, opponent: SSDiscriminatorNet, input, labels=None, loss_switch=False):
         batch_size = input.size(0)
-
-        real_labels = to_pytorch_variable(torch.ones(batch_size))
-
         z = noise(batch_size, self.data_size)
-
         fake_images = self.net(z)
-        outputs = opponent.adv_layer(opponent.net(fake_images)).view(-1)
+        network_output = opponent.net(fake_images)
 
-        # Compute BCELoss using D(G(z))
-        return self.loss_function(outputs, real_labels), fake_images, None
+        if loss_switch:
+            tensor = torch.Tensor(batch_size)
+            tensor.fill_(self.num_classes)
+            tensor = tensor.long()
+            fake_labels = to_pytorch_variable(tensor)
+            label_prediction = opponent.label_pred_layer(network_output).view(-1, self.num_classes + 1)
+            loss = opponent.label_pred_loss(label_prediction, fake_labels)
+        else:
+            real_labels = to_pytorch_variable(torch.ones(batch_size))
+            outputs = opponent.adv_layer(network_output).view(-1)
+            loss = self.loss_function(outputs, real_labels)
+
+        return loss, fake_images, None
