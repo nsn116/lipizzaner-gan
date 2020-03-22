@@ -109,11 +109,9 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
         for iteration in range(n_iterations):
 
-            # if (iteration//10) % 2 == 1:
-            #     loss_switch = True
-            # else:
-            #     loss_switch = False
-            loss_switch = 0
+            loss_switch = -1
+            if iteration % 50 == 0:
+                loss_switch = (loss_switch + 1) % 3
 
             self._logger.debug('Iteration {} started'.format(iteration + 1))
             start_time = time()
