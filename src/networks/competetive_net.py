@@ -356,19 +356,20 @@ class SSGeneratorNet(GeneratorNet):
         real_labels = to_pytorch_variable(torch.ones(batch_size))
         outputs = opponent.adv_layer(network_output).view(-1)
         validity = self.loss_function(outputs, real_labels)
+        loss = validity
 
-        tensor = torch.Tensor(batch_size)
-        tensor.fill_(self.num_classes)
-        tensor = tensor.long()
-        fake_labels = to_pytorch_variable(tensor)
-        label_prediction = opponent.label_pred_layer(network_output).view(-1, self.num_classes + 1)
-        label_prediction_loss = opponent.label_pred_loss(label_prediction, fake_labels)
-
-        if loss_switch == 1:
-            loss = validity
-        elif loss_switch == 2:
-            loss = label_prediction_loss
-        else:
-            loss = (validity + label_prediction_loss) / 2
+        # tensor = torch.Tensor(batch_size)
+        # tensor.fill_(self.num_classes)
+        # tensor = tensor.long()
+        # fake_labels = to_pytorch_variable(tensor)
+        # label_prediction = opponent.label_pred_layer(network_output).view(-1, self.num_classes + 1)
+        # label_prediction_loss = opponent.label_pred_loss(label_prediction, fake_labels)
+        #
+        # if loss_switch == 1:
+        #     loss = validity
+        # elif loss_switch == 2:
+        #     loss = label_prediction_loss
+        # else:
+        #     loss = (validity + label_prediction_loss) / 2
 
         return loss, fake_images, None
