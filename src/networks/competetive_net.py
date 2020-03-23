@@ -5,6 +5,7 @@ import copy
 import numpy as np
 import torch
 from torch.nn import Softmax
+import random
 
 from distribution.state_encoder import StateEncoder
 from helpers.pytorch_helpers import to_pytorch_variable, is_cuda_enabled, size_splits, noise
@@ -286,6 +287,9 @@ class SSDiscriminatorNet(DiscriminatorNet):
         real = to_pytorch_variable(torch.ones(batch_size))
         fake = to_pytorch_variable(torch.zeros(batch_size))
 
+        random_factor = random.uniform(0, 1)
+        random_factor_complement = 1 - random_factor
+
         # Real Loss
         network_output = self.net(input)
         if not self.conv:
@@ -296,12 +300,13 @@ class SSDiscriminatorNet(DiscriminatorNet):
         outputs = self.adv_layer(network_output).view(-1)
         validity = self.loss_function(outputs, real)
 
-        if loss_switch == 1:
-            d_loss_real = validity / 2
-        elif loss_switch == 2:
-            d_loss_real = label_prediction_loss / 2
-        else:
-            d_loss_real = (validity + label_prediction_loss) / 2
+        # if loss_switch == 1:
+        #     d_loss_real = validity / 2
+        # elif loss_switch == 2:
+        #     d_loss_real = label_prediction_loss / 2
+        # else:
+        #     d_loss_real = (validity + label_prediction_loss) / 2
+        d_loss_real = (random_factor * validity + random_factor_complement * label_prediction_loss) / 2
 
         pred = label_prediction.data.cpu().numpy()
         ground_truth = labels.data.cpu().numpy()
@@ -320,12 +325,13 @@ class SSDiscriminatorNet(DiscriminatorNet):
         outputs = self.adv_layer(network_output).view(-1)
         validity = self.loss_function(outputs, fake)
 
-        if loss_switch == 1:
-            d_loss_fake = validity / 2
-        elif loss_switch == 2:
-            d_loss_fake = label_prediction_loss / 2
-        else:
-            d_loss_fake = (validity + label_prediction_loss) / 2
+        # if loss_switch == 1:
+        #     d_loss_fake = validity / 2
+        # elif loss_switch == 2:
+        #     d_loss_fake = label_prediction_loss / 2
+        # else:
+        #     d_loss_fake = (validity + label_prediction_loss) / 2
+        d_loss_fake = (random_factor * validity + random_factor_complement * label_prediction_loss) / 2
 
         return d_loss_real + d_loss_fake, None, accuracy
 
