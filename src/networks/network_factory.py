@@ -340,6 +340,10 @@ class SSGANPerceptronFactory(NetworkFactory):
                 nn.Linear(256, 512),
                 nn.LeakyReLU(0.2)
             ),
+            Sequential(
+                nn.Linear(512, 1),
+                nn.Sigmoid()
+            ),
             Sequential(nn.Linear(512, self.num_classes + 1)),
             self.gen_input_size,
         )

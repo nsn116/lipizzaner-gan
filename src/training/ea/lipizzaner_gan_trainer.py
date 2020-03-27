@@ -109,6 +109,12 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
 
         for iteration in range(n_iterations):
+
+            if iteration >= n_iterations / 2:
+                loss_switch = True
+            else:
+                loss_switch = False
+
             self._logger.debug('Iteration {} started'.format(iteration + 1))
             start_time = time()
 
@@ -162,9 +168,13 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
             # Fitness evaluation
             self._logger.debug('Evaluating fitness')
-            self.evaluate_fitness(all_generators, all_discriminators, fitness_input, self.fitness_mode)
-            self.evaluate_fitness(all_discriminators, all_generators, fitness_input, self.fitness_mode,
-                                  labels=fitness_labels, logger=self._logger, alpha=alpha, beta=beta)
+            self.evaluate_fitness(all_generators, all_discriminators,
+                                  fitness_input, self.fitness_mode,
+                                  loss_switch=loss_switch)
+            self.evaluate_fitness(all_discriminators, all_generators,
+                                  fitness_input, self.fitness_mode,
+                                  labels=fitness_labels, logger=self._logger,
+                                  alpha=alpha, beta=beta, loss_switch=loss_switch)
             self._logger.debug('Finished evaluating fitness')
 
             # Tournament selection
@@ -199,7 +209,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 attackers = new_populations[TYPE_GENERATOR] if self._enable_selection else local_generators
                 defenders = new_populations[TYPE_DISCRIMINATOR] if self._enable_selection else all_discriminators
                 input_data = self.step(local_generators, attackers, defenders, input_data, self.batch_number, loaded,
-                                       data_iterator)
+                                       data_iterator, loss_switch=loss_switch)
 
                 if self._discriminator_skip_each_nth_step == 0 or self.batch_number % (
                         self._discriminator_skip_each_nth_step + 1) == 0:
@@ -208,7 +218,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                     attackers = new_populations[TYPE_DISCRIMINATOR] if self._enable_selection else local_discriminators
                     defenders = new_populations[TYPE_GENERATOR] if self._enable_selection else all_generators
                     input_data = self.step(local_discriminators, attackers, defenders, input_data, self.batch_number,
-                                           loaded, data_iterator, labels=labels, alpha=alpha, beta=beta)
+                                           loaded, data_iterator, labels=labels, alpha=alpha, beta=beta, loss_switch=loss_switch)
 
                 self._logger.info('Iteration {}, Batch {}/{}'.format(iteration + 1, self.batch_number, len(loaded)))
 
@@ -222,10 +232,13 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             # Replace the worst with the best new
             if self._enable_selection:
                 # Evaluate fitness of new_populations against neighborhood
-                self.evaluate_fitness(new_populations[TYPE_GENERATOR], all_discriminators, fitness_input,
-                                      self.fitness_mode)
-                self.evaluate_fitness(new_populations[TYPE_DISCRIMINATOR], all_generators, fitness_input,
-                                      self.fitness_mode, labels=fitness_labels, alpha=alpha, beta=beta)
+                self.evaluate_fitness(new_populations[TYPE_GENERATOR],
+                                      all_discriminators, fitness_input,
+                                      self.fitness_mode, loss_switch=loss_switch)
+                self.evaluate_fitness(new_populations[TYPE_DISCRIMINATOR],
+                                      all_generators, fitness_input,
+                                      self.fitness_mode, labels=fitness_labels,
+                                      alpha=alpha, beta=beta, loss_switch=loss_switch)
                 self.concurrent_populations.lock()
                 local_generators.replacement(new_populations[TYPE_GENERATOR], self._n_replacements, is_logging=True)
                 local_generators.sort_population(is_logging=True)
@@ -243,10 +256,13 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                     individual.iteration = iteration + 1
             else:
                 # Re-evaluate fitness of local_generators and local_discriminators against neighborhood
-                self.evaluate_fitness(local_generators, all_discriminators, fitness_input, self.fitness_mode)
+                self.evaluate_fitness(local_generators, all_discriminators,
+                                      fitness_input, self.fitness_mode,
+                                      loss_switch=loss_switch)
                 self.evaluate_fitness(local_discriminators, all_generators,
                                       fitness_input, self.fitness_mode,
-                                      labels=fitness_labels, alpha=alpha, beta=beta)
+                                      labels=fitness_labels, alpha=alpha, beta=beta,
+                                      loss_switch=loss_switch)
 
 
             # Mutate mixture weights after selection
@@ -359,10 +375,11 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                                                                                                         self.score))
 
     def step(self, original, attacker, defender, input_data, i, loaded,
-             data_iterator, labels=None, alpha=None, beta=None):
+             data_iterator, labels=None, alpha=None, beta=None, loss_switch=False):
         self.mutate_hyperparams(attacker)
         return self.update_genomes(attacker, defender, input_data, loaded,
-                                   data_iterator, labels=labels, alpha=alpha, beta=beta)
+                                   data_iterator, labels=labels, alpha=alpha,
+                                   beta=beta, loss_switch=loss_switch)
 
     def is_last_batch(self, i):
         return self.dataloader.n_batches != 0 and self.dataloader.n_batches - 1 == i
@@ -381,7 +398,8 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             individual.learning_rate = max(0, individual.learning_rate + deltas[i] * self._alpha)
 
     def update_genomes(self, population_attacker, population_defender, input_var,
-                       loaded, data_iterator, labels=None, alpha=None, beta=None):
+                       loaded, data_iterator, labels=None, alpha=None, beta=None,
+                       loss_switch=False):
 
         # TODO Currently picking random opponent, introduce parameter for this
         defender = random.choice(population_defender.individuals).genome
@@ -397,10 +415,12 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 optimizer.load_state_dict(individual_attacker.optimizer_state)
 
             if labels is None:
-                loss = attacker.compute_loss_against(defender, input_var)[0]
+                loss = attacker.compute_loss_against(defender, input_var,
+                                                     loss_switch=loss_switch)[0]
             else:
                 loss = attacker.compute_loss_against(defender, input_var,
-                                                     labels=labels, alpha=alpha, beta=beta)[0]
+                                                     labels=labels, alpha=alpha,
+                                                     beta=beta, loss_switch=loss_switch)[0]
 
             attacker.net.zero_grad()
             defender.net.zero_grad()
@@ -413,7 +433,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
     @staticmethod
     def evaluate_fitness(population_attacker, population_defender, input_var, fitness_mode,
-                         labels=None, logger=None, alpha=None, beta=None):
+                         labels=None, logger=None, alpha=None, beta=None, loss_switch=False):
         # Single direction only: Evaluate fitness of attacker based on defender
         # TODO: Simplify and refactor this function
         def compare_fitness(curr_fitness, fitness, mode):
@@ -440,12 +460,14 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 if labels is None:
                     fitness_attacker = float(
                         individual_attacker.genome.compute_loss_against(
-                            individual_defender.genome, input_var)[0])
+                            individual_defender.genome, input_var,
+                            loss_switch=loss_switch)[0])
                 else:
                     fitness_attacker = float(
                         individual_attacker.genome.compute_loss_against(
                             individual_defender.genome, input_var,
-                            labels=labels, alpha=alpha, beta=beta)[0])
+                            labels=labels, alpha=alpha, beta=beta,
+                            loss_switch=loss_switch)[0])
 
                 individual_attacker.fitness = compare_fitness(fitness_attacker, individual_attacker.fitness,
                                                               fitness_mode)
@@ -467,19 +489,14 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             generator = gen.genome
             discriminator = dis.genome
             discriminator_output = discriminator.compute_loss_against(
-                generator, input_var, labels=labels, alpha=alpha, beta=beta
+                generator, input_var, labels=labels, alpha=alpha, beta=beta,
+                loss_switch=loss_switch
             )
             accuracy = discriminator_output[2]
             if discriminator.name == "SemiSupervisedDiscriminator" and \
                     accuracy is not None:
-                # d_acc = accuracy[0]
-                # real_acc = accuracy[1]
-                # fake_acc = accuracy[2]
                 logger.info(
                     "Label Prediction Accuracy: %d%%, "
-                    # "Real Image Prediction Accuracy: %d%%, "
-                    # "Fake Image Prediction Accuracy: %d%%"
-                    # % (100 * d_acc, 100 * real_acc, 100 * (1 - fake_acc))
                     % (100 * accuracy)
                 )
 
