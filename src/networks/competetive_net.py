@@ -286,7 +286,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
         tensor = tensor.long()
         fake_labels = to_pytorch_variable(tensor)
 
-        label_rate = 0.2
+        label_rate = 1
         label_mask = self._get_labeled_mask(batch_size, label_rate)
 
         # Positive Label Smoothing
@@ -300,6 +300,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
         input = input + input_perturbation
 
         network_output = self.classification_layer(self.net(input))
+        network_output = network_output.view(batch_size, -1)
 
         # Real Supervised Loss
         supervised_loss_function = CrossEntropyLoss(reduction='none')
@@ -328,6 +329,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
         z = noise(batch_size, self.data_size)
         fake_images = opponent.net(z)
         network_output = self.classification_layer(self.net(fake_images))
+        network_output = network_output.view(batch_size, -1)
         label_prediction_loss = self.loss_function(network_output, fake_labels)
         d_loss_unsupervised = d_loss_unsupervised + label_prediction_loss
 

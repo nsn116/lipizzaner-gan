@@ -31,7 +31,9 @@ dataloader:
   shuffle: True
 network:
   name: ssgan_convolutional
-  loss: bceloss
+#  name: convolutional
+#  loss: bceloss
+  loss: celoss
 master:
   calculate_score: True
   score_sample_size: 50000
