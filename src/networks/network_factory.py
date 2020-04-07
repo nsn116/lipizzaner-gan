@@ -498,7 +498,12 @@ class SSGANConvolutionalMNISTNetworkFactory(NetworkFactory):
                 nn.BatchNorm2d(self.complexity * 8),
                 nn.LeakyReLU(0.2, inplace=True)
             ),
-            Sequential(nn.Conv2d(self.complexity * 8, self.num_classes + 1, 4, 1, 0)),
+            Sequential(
+                nn.Conv2d(self.complexity * 8, 1, 4, 1, 0),
+                nn.Sigmoid()
+            ),
+            Sequential(
+                nn.Conv2d(self.complexity * 8, self.num_classes + 1, 4, 1, 0)),
             self.gen_input_size,
             conv=True
         )
