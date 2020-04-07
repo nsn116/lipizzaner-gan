@@ -27,6 +27,7 @@ from torch.nn.functional import adaptive_avg_pool2d
 
 from helpers.configuration_container import ConfigurationContainer
 from training.mixture.fid_mnist import MNISTCnn
+from training.mixture.fid_mnist_conv import MNISTConvCnn
 from training.mixture.fid_inception import InceptionV3
 from training.mixture.score_calculator import ScoreCalculator
 
@@ -64,8 +65,12 @@ class FIDCalculator(ScoreCalculator):
         """
         model = None
         if self.cc.settings['dataloader']['dataset_name'] == 'mnist':    # Gray dataset
-            model = MNISTCnn()
-            model.load_state_dict(torch.load('./output/networks/mnist_cnn.pkl'))
+            if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
+                model = MNISTConvCnn()
+                model.load_state_dict(torch.load('./output/networks/mnist_conv_cnn.pt'))
+            else:
+                model = MNISTCnn()
+                model.load_state_dict(torch.load('./output/networks/mnist_cnn.pkl'))
             compute_label_freqs = True
         elif self.cc.settings['dataloader']['dataset_name'] == 'mnist_fashion':
             model = MNISTCnn()
@@ -132,7 +137,8 @@ class FIDCalculator(ScoreCalculator):
 
             pred = model(batch)[0]
 
-            if self.cc.settings['dataloader']['dataset_name'] != 'mnist' and self.cc.settings['dataloader']['dataset_name'] != 'mnist_fashion':
+            if self.cc.settings['dataloader']['dataset_name'] != 'mnist' \
+                and self.cc.settings['dataloader']['dataset_name'] != 'mnist_fashion':
                 # If model output is not scalar, apply global spatial average pooling.
                 # This happens if you choose a dimensionality not equal 2048.
                 if pred.shape[2] != 1 or pred.shape[3] != 1:
@@ -244,7 +250,12 @@ class FIDCalculator(ScoreCalculator):
 
         for i in range(self.n_samples):
             img = dataset[i]
-            if self.cc.settings['dataloader']['dataset_name'] == 'mnist' or self.cc.settings['dataloader']['dataset_name'] == 'mnist_fashion':
+            if self.cc.settings['dataloader']['dataset_name'] == 'mnist':
+                if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
+                    img = img.view(-1, 64, 64)
+                else:
+                    img = img.view(-1, 28, 28)
+            if self.cc.settings['dataloader']['dataset_name'] == 'mnist_fashion':
                 # Reshape to 2D images as required by MNISTCnn class
                 img = img.view(-1, 28, 28)
 
