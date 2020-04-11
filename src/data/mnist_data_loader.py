@@ -44,4 +44,4 @@ class MNISTDataLoader(DataLoader):
         if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
             return data
         else:
-            return super().transpose_data()
+            return super().transpose_data(data)
