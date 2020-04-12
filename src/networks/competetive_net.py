@@ -356,7 +356,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
     def compute_loss_against(self, opponent, input, labels=None, alpha=None,
                              beta=None, loss_switch=False):
 
-        if not loss_switch:
+        if loss_switch:
             loss, accuracy = self.__compute_semi_supervised_loss(
                 opponent, input, labels, alpha=None, beta=None
             )
