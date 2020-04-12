@@ -286,7 +286,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
         tensor = tensor.long()
         fake_labels = to_pytorch_variable(tensor)
 
-        label_rate = 1
+        label_rate = 0.1
         label_mask = self._get_labeled_mask(batch_size, label_rate)
 
         # Positive Label Smoothing
@@ -303,12 +303,12 @@ class SSDiscriminatorNet(DiscriminatorNet):
         network_output = network_output.view(batch_size, -1)
 
         # Real Supervised Loss
-        # supervised_loss_function = CrossEntropyLoss(reduction='none')
-        # supervised_loss = supervised_loss_function(network_output, labels)
-        # num_usable_labels = torch.sum(label_mask)
-        # loss_for_usable_labels = torch.sum(supervised_loss * label_mask)
-        # label_prediction_loss = loss_for_usable_labels / num_usable_labels
-        label_prediction_loss = self.loss_function(network_output, labels)
+        supervised_loss_function = CrossEntropyLoss(reduction='none')
+        supervised_loss = supervised_loss_function(network_output, labels)
+        num_usable_labels = torch.sum(label_mask)
+        loss_for_usable_labels = torch.sum(supervised_loss * label_mask)
+        label_prediction_loss = loss_for_usable_labels / num_usable_labels
+        # label_prediction_loss = self.loss_function(network_output, labels)
 
         # Real Unsupervised Loss
         softmax_layer = Softmax()
@@ -356,7 +356,7 @@ class SSDiscriminatorNet(DiscriminatorNet):
     def compute_loss_against(self, opponent, input, labels=None, alpha=None,
                              beta=None, loss_switch=False):
 
-        if loss_switch:
+        if not loss_switch:
             loss, accuracy = self.__compute_semi_supervised_loss(
                 opponent, input, labels, alpha=None, beta=None
             )
