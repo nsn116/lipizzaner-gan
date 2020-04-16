@@ -338,6 +338,10 @@ class SSDiscriminatorNet(DiscriminatorNet):
     def __compute_unsupervised_loss(self, opponent, input):
         batch_size = input.size(0)
 
+        input_perturbation = torch.empty(input.shape).normal_(mean=0, std=0.1)
+        input_perturbation = to_pytorch_variable(input_perturbation)
+        input = input + input_perturbation
+
         real = to_pytorch_variable(torch.ones(batch_size))
         fake = to_pytorch_variable(torch.zeros(batch_size))
 
