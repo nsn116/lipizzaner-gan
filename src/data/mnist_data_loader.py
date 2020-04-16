@@ -34,11 +34,11 @@ class MNISTDataLoader(DataLoader):
             return super().transform()
 
     def save_images(self, images, shape, filename):
-        # if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
-        #     img_view = images
-        #     save_image(denorm(img_view.data), filename)
-        # else:
-        super().save_images(images, shape, filename)
+        if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
+            img_view = images
+            save_image(denorm(img_view.data), filename)
+        else:
+            super().save_images(images, shape, filename)
 
     def transpose_data(self, data):
         if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
