@@ -327,7 +327,9 @@ class SSDiscriminatorNet(DiscriminatorNet):
 
         # Fake Unsupervised Loss
         z = noise(batch_size, self.data_size)
-        fake_images = opponent.net(z)
+        z_perturbation = torch.empty(z.shape).normal_(mean=0, std=0.1)
+        z_perturbation = to_pytorch_variable(z_perturbation)
+        fake_images = opponent.net(z + z_perturbation)
         network_output = self.classification_layer(self.net(fake_images))
         network_output = network_output.view(batch_size, -1)
         label_prediction_loss = self.loss_function(network_output, fake_labels)
@@ -337,10 +339,6 @@ class SSDiscriminatorNet(DiscriminatorNet):
 
     def __compute_unsupervised_loss(self, opponent, input):
         batch_size = input.size(0)
-
-        input_perturbation = torch.empty(input.shape).normal_(mean=0, std=0.1)
-        input_perturbation = to_pytorch_variable(input_perturbation)
-        input = input + input_perturbation
 
         real = to_pytorch_variable(torch.ones(batch_size))
         fake = to_pytorch_variable(torch.zeros(batch_size))
