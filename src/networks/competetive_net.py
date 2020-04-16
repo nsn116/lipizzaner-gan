@@ -394,7 +394,7 @@ class SSGeneratorNet(GeneratorNet):
         if loss_switch:
             real_data_moments = torch.mean(opponent.net(input), 0)
             fake_data_moments = torch.mean(opponent_network_output, 0)
-            loss = torch.mean(torch.abs(real_data_moments - fake_data_moments))
+            loss = torch.norm(real_data_moments - fake_data_moments)
         else:
             real = to_pytorch_variable(torch.ones(batch_size))
             network_output = opponent.sigmoid_layer(opponent_network_output).view(-1)
