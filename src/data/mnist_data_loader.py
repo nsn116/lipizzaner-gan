@@ -1,3 +1,4 @@
+from torch.autograd import Variable
 from torchvision import datasets
 from data.data_loader import DataLoader
 
@@ -35,8 +36,13 @@ class MNISTDataLoader(DataLoader):
 
     def save_images(self, images, shape, filename):
         if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
-            img_view = images
-            save_image(denorm(img_view.data), filename)
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.info(images)
+            _logger.info(images.shape)
+            data = images.data if isinstance(images, Variable) else images
+            _logger.info(data.shape)
+            save_image(denorm(data), filename)
         else:
             super().save_images(images, shape, filename)
 
