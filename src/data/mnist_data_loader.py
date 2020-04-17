@@ -38,7 +38,6 @@ class MNISTDataLoader(DataLoader):
         if self.cc.settings['network']['name'] == 'ssgan_convolutional_mnist':
             import logging
             _logger = logging.getLogger(__name__)
-            _logger.info(images)
             _logger.info(images.shape)
             data = images.data if isinstance(images, Variable) else images
             _logger.info(data.shape)
