@@ -16,8 +16,6 @@ from networks.competetive_net import (
     SSGeneratorNet
 )
 
-from helpers.view_layer import View
-
 
 class NetworkFactory(ABC):
 
@@ -342,9 +340,9 @@ class SSGANPerceptronFactory(NetworkFactory):
                 nn.Dropout(0.1),
                 nn.LeakyReLU(0.2),
                 nn.Linear(256, 512),
-                nn.LeakyReLU(0.2)
+                nn.LeakyReLU(0.2),
+                nn.Linear(512, self.num_classes + 1)
             ),
-            Sequential(nn.Linear(512, self.num_classes + 1)),
             self.gen_input_size,
         )
 
@@ -413,9 +411,9 @@ class SSGANConvolutionalNetworkFactory(NetworkFactory):
                 nn.LeakyReLU(0.2, inplace=True),
                 nn.Conv2d(self.complexity * 4, self.complexity * 8, 4, 2, 1),
                 nn.BatchNorm2d(self.complexity * 8),
-                nn.LeakyReLU(0.2, inplace=True)
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(self.complexity * 8, self.num_classes + 1, 4, 1, 0)
             ),
-            Sequential(nn.Conv2d(self.complexity * 8, self.num_classes + 1, 4, 1, 0)),
             self.gen_input_size,
             mnist_28x28_conv=False
         )
@@ -492,9 +490,9 @@ class SSGANConvolutionalMNISTNetworkFactory(NetworkFactory):
                 nn.LeakyReLU(0.2, inplace=True),
                 nn.Conv2d(self.complexity * 4, self.complexity * 8, 4, 2, 1),
                 nn.BatchNorm2d(self.complexity * 8),
-                nn.LeakyReLU(0.2, inplace=True)
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(self.complexity * 8, self.num_classes + 1, 4, 1, 0)
             ),
-            Sequential(nn.Conv2d(self.complexity * 8, self.num_classes + 1, 4, 1, 0)),
             self.gen_input_size,
             mnist_28x28_conv=False
         )
@@ -564,8 +562,8 @@ class SSGANConvMNIST28x28NetworkFactory(NetworkFactory):
                 nn.Conv2d(self.complexity * 2, self.complexity * 4, 4, 2, 1),
                 nn.BatchNorm2d(self.complexity * 4),
                 nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(self.complexity * 4, self.num_classes + 1, 4, 1, 0)
             ),
-            Sequential(nn.Conv2d(self.complexity * 4, self.num_classes + 1, 4, 1, 0)),
             self.gen_input_size,
             mnist_28x28_conv=True
         )

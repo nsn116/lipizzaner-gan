@@ -293,6 +293,11 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             self.test(discriminator, dataloader_loaded, train=False)
 
             discriminators = [individual.genome for individual in self.neighbourhood.all_discriminators.individuals]
+
+            for model in discriminators:
+                dataloader_loaded = self.dataloader.load(train=False)
+                self.test(model, dataloader_loaded, train=False)
+
             dataloader_loaded = self.dataloader.load(train=False)
             self.test_majority_voting(discriminators, dataloader_loaded, train=False)
             self.dataloader.batch_size = batch_size
@@ -327,7 +332,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 data = data.view(-1, 1, 28, 28)
                 pred_accumulator = []
                 for model in models:
-                    output = model.classification_layer(model.net(data))
+                    output = model.net(data)
                     output = output.view(-1, 11)
                     pred = output.argmax(dim=1, keepdim=True)
                     pred_accumulator.append(pred.view(-1))
@@ -348,7 +353,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 data, target = data.to(device), target.to(device)
                 # data = data.view(-1, 784)
                 data = data.view(-1, 1, 28, 28)
-                output = model.classification_layer(model.net(data))
+                output = model.net(data)
                 output = output.view(-1, 11)
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
