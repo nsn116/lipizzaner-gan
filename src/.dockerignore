@@ -1,2 +1,4 @@
-output
+output/data 
+output/lipizzaner_gan  
+output/log  
 lipizzaner-dashboard

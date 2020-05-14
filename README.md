@@ -168,7 +168,7 @@ This is needed to establish communication between containers on multiple machine
 
     - *Execute on any node (notice that this command differs from the one in the previous section - '-e SWARM=True' was removed):*
         ```
-        docker run -it --rm -e config_file=CONFIG_FILE -e role=master --network lpz-overlay --name lipizzaner-master lipizzaner2018/lipizzaner:lates
+        docker run -it --rm -e config_file=CONFIG_FILE -e role=master --runtime=nvidia --network lpz-overlay --name lipizzaner-master lipizzaner2018/lipizzaner:lates
         ```
 
         Set the config file path as you would for a non-docker run, e.g. `configuration/lipizzaner-gan/celeba.yml`.
